@@ -5,7 +5,7 @@ resource "aws_route_table" "private_routes" {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = lookup(aws_nat_gateway.nat-gateway, each.key).id
   }
-  tags = merge({ Name = "${var.vpc_name}-private-${index(var.private_subnet_list, each.value)}-route" }, var.tags)
+  tags = merge({ Name = "${var.vpc_name}-private-${index(var.private_subnet_list, each.value.availability_zone)}-route" }, var.tags)
 }
 
 resource "aws_route_table_association" "private_route_association" {
