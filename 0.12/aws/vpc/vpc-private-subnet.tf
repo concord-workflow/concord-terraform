@@ -11,4 +11,5 @@ resource "aws_subnet" "private" {
       tags,
     ]
   }
+  depends_on = [var.private_subnet_list]
 }
