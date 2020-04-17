@@ -6,8 +6,9 @@ source "$PWD/.test/functions.bash"
 basedir=${PWD}
 version="0.12"
 provider="aws"
-testResults="${basedir}/test-results.txt"
-awsCredentials="${basedir}/.test/*get-aws-profile.sh"
+targetDir="${basedir}/target/${version}"
+testResults="${targetDir}/test-results.txt"
+awsCredentialsScript="${basedir}/.test/*get-aws-profile.sh"
 awsProfile="${AWS_PROFILE}"
 modulesPath="${basedir}/${version}/${provider}"
 
@@ -15,7 +16,7 @@ function testModule() {
   module=$1 #moduleId
   modulePath=$2
   modulesPath=$3 # basedir of actual modules
-
+  
   if [ -d ${modulePath} ]; then
     (
       cd ${modulePath}
@@ -24,14 +25,13 @@ function testModule() {
 
         (
           cd tests
-          terraformDir="concord-terraform"
-          processFiles "${terraformDir}" "${modulesPath}" "${modulePath}"
-
+          testDir="${targetDir}/${module}"
+          processFiles "${testDir}" "${modulesPath}" "${modulePath}"
           if [ -f terraform-requirements ]; then
             for requirement in $(cat terraform-requirements)
             do
-              cp ${modulesPath}/${requirement}/*.tf ${terraformDir}
-              cp ${modulesPath}/${requirement}/*.json ${terraformDir} 2>/dev/null || :
+              cp ${modulesPath}/${requirement}/*.tf ${targetDir}
+              cp ${modulesPath}/${requirement}/*.json ${targetDir} 2>/dev/null || :
             done
           fi
 
@@ -39,8 +39,8 @@ function testModule() {
           if [ -d "${fixturesDir}" ]; then
             (
               cd ${fixturesDir}
-              processFiles "${terraformDir}" "${modulesPath}" "${PWD}"
-              cd ${terraformDir}
+              processFiles "${targetDir}" "${modulesPath}" "${PWD}"
+              cd ${targetDir}
               processTerraformVars
               if [ ! -f .noterraform ]; then
                 terraform init -no-color
@@ -49,17 +49,18 @@ function testModule() {
               fi
             )
           fi
-
+          
           # Execute
           (
-            cd ${terraformDir}
+            cd ${targetDir}
             processTerraformVars
+            
             [ -f terraform-pre-tests ] && echo && bash ./terraform-pre-tests
-
+            
             if [ ! -f .noterraform ]; then
               start=$SECONDS
               terraform init -no-color
-              terraform validate -no-color
+              terraform validate -no-color              
               terraform apply -auto-approve -no-color
               terraform output -json > terraform-outputs.json
               [ -f terraform-tests.bats ] && echo && bats terraform-tests.bats
@@ -71,7 +72,7 @@ function testModule() {
                   if [ -d "../${fixturesDir}" ]; then
                     (
                       cd ../${fixturesDir}
-                      cd ${terraformDir}
+                      cd ${targetDir}
                       terraform destroy -auto-approve -no-color
                     )
                   fi
@@ -106,14 +107,16 @@ function usage() {
 " | column -t -s ";"
 }
 
-options=$(getopt -o d:m:a:td --long debug:,module:,all:,terraform-destroy: -n 'parse-options' -- "$@")
+options=$(getopt -o h,d,m,a,td --long help,debug,module,all,terraform-destroy -n 'parse-options' -- "$@")
 
 if [ $? != 0 ]; then
   echo "Failed parsing options." >&2
   exit 1
 fi
 
-while true; do
+action=""
+
+while [[ $# -gt 0 ]]; do
   case "$1" in
     -h  | --help) usage; exit;;
     -d  | --debug) set -eox pipefail; shift 1;;
@@ -132,14 +135,21 @@ if [ "$action" = "terraform-destroy" ]; then
   for module in ${modules}
   do
     (
-      cd ${modulesPath}/${module}/tests
-      ( cd concord-terraform; terraform destroy -auto-approve)
-      if [ -d fixtures ]; then
-        ( cd fixtures/concord-terraform; terraform destroy -auto-approve)
+      moduleTargetDir="${targetDir}/${module}"
+      if [ -d "${moduleTargetDir}" ]; then
+        cd ${moduleTargetDir}
+        echo "Destroing module[${module}]"
+        echo "Module directory[${moduleTargetDir}]"
+        ( terraform destroy -auto-approve )
+        if [ -d fixtures ]; then
+          ( cd fixtures/concord-terraform; terraform destroy -auto-approve )
+        fi
       fi
     )
   done
 else
+  mkdir -p ${targetDir} 2>/dev/null
+  
   for module in ${modules}
   do
     testModule "${module}" "${modulesPath}/${module}" "${modulesPath}"

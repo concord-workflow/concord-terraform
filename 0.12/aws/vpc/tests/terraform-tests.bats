@@ -1,10 +1,38 @@
 load terraform
 
 @test "Validate outputs of Terraform 'vpc' module" {
-  assertTerraformOutputNotEmpty ".vpc_id.value"
+
+  region="us-west-2"
+  availability_zones=(
+    "${region}a"
+    "${region}b"
+  )
+  
+  # Verify that VPC was created
+  assertTerraformOutputEquals $region '.region.value'
+  assertTerraformOutputNotEmpty ".vpc.value.id"
   assertTerraformOutputEquals "concord-testing-vpc" ".vpc.value.tags.Name"
-  assertTerraformOutputNotEmpty '.["nat-eips"].value["us-east-2a"].id'
-  assertTerraformOutputNotEmpty '.["nat-gw"].value["us-east-2a"].id'
-  assertTerraformOutputNotEmpty '.["public_subnets"].value["us-east-2a"].id'
-  assertTerraformOutputNotEmpty '.["privat_subnets"].value["us-east-2a"].id'
+  
+  # Verify that count of created public subnets matches no. of AZ's
+  assertTerraformOutputMapSize ${#availability_zones[@]} '.public_subnets.value'
+  # Verify that count of created NAT Gateways matches no. of AZ's
+  assertTerraformOutputMapSize ${#availability_zones[@]} '.["nat-gw"].value'
+  # Verify that count of created Elastic IP' matches no. of AZ's
+  assertTerraformOutputMapSize ${#availability_zones[@]} '.["nat-eips"].value'
+  # Verify that count of created private subnets matches no. of AZ's
+  assertTerraformOutputArraySize $(( ${#availability_zones[@]}*2 )) '.private_subnets.value'
+  
+  for az in ${availability_zones[@]}; do
+    
+    # Verify that public subnet was created in availability zone
+    assertTerraformOutputNotEmpty ".public_subnets.value[\"$az\"].id"
+    # Verify that Nat Gateway was created in availability zone
+    assertTerraformOutputNotEmpty ".[\"nat-gw\"].value[\"$az\"].id"
+    # Verify that Elastic IP is used in availability zone
+    assertTerraformOutputNotEmpty ".[\"nat-eips\"].value[\"$az\"].id"
+    # Verify that 2 private subnets where created in availability zone
+    assertTerraformOutputArraySize 2 "[ .private_subnets.value[] | select(.availability_zone==\"$az\").id ]"   
+
+  done
+   
 }

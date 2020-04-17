@@ -13,6 +13,6 @@ do
   # Check if our cidrIp is contained in the takenCidrIps array
   if [[ ! " ${takenCidrIps[@]} " =~ " ${tryCidrIp} " ]]; then
     # We found a free cidrIp
-    echo "${tryCidrIp}/24"; break
+    echo "${tryCidrIp}"; break
   fi
 done

@@ -1,5 +1,7 @@
 
-cidr=$(./terraform-free-cidr)
-sed -e "s@\$CIDR@$cidr@" terraform.tfvars.json > tmp
+cidr_ip=$(./terraform-free-cidr-ip)
+cider_ip_16_prefix=$( echo "$cidr_ip" | sed -E "s|^([0-9]+\.[0-9]+)\.[0-9]+\.[0-9]+$|\1|" )
+sed -e "s|\$VPC_CIDR_IP_16b_PREFIX|$cider_ip_16_prefix|;
+s|\$VPC_CIDR_IP|$cidr_ip|" terraform.tfvars.json > tmp
 mv tmp terraform.tfvars.json
 rm -f 00-data.tf

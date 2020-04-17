@@ -1,11 +1,12 @@
 # The generated directory for testing
-concord-terraform/
+target/
 test-results.txt
 .noterraform
 .nodestroy
 
 pom.xml
 .idea/
+.vscode/
 *.iml
 
 .DS_Store

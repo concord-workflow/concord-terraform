@@ -1,43 +1,49 @@
 function processFiles() {
-  terraformDir="$1"
+  targetDir="$1"
   modulesPath="$2"
   modulePath="$3"
-
-  rm -rf ${terraformDir} > /dev/null 2>&1
-  mkdir ${terraformDir}
+  
+  if [ -f ${targetDir}/terraform.tfstate ]; then
+    cd ${targetDir}
+    terraform destroy -auto-approve -no-color
+    cd -
+  fi
+  rm -rf ${targetDir} > /dev/null 2>&1
+  mkdir ${targetDir}
   terraformVars=terraform.tfvars.json
 
   # Defaults
-  cp ${modulesPath}/00-data.tf ${terraformDir}
-  cp ${modulesPath}/00-network-variables.tf ${terraformDir}
-  cp ${modulesPath}/00-provider-credentials.tf ${terraformDir}
-  cp ${modulesPath}/00-provider-credentials-variables.tf ${terraformDir}
+  cp ${modulesPath}/00-data.tf ${targetDir}
+  cp ${modulesPath}/00-network-variables.tf ${targetDir}
+  cp ${modulesPath}/00-provider-credentials.tf ${targetDir}
+  cp ${modulesPath}/00-provider-credentials-variables.tf ${targetDir}
 
   # Data
   data="${modulesPath}/ec2/ec2-ubuntu-18.04.tf"
-  cp ${data} ${terraformDir}
+  cp ${data} ${targetDir}
 
   # Test
-  cp ${basedir}/.test/terraform.bash ${terraformDir}
-  cp ${terraformVars} ${terraformDir}
-  cp terraform* ${terraformDir}
-  [ -f .noterraform ] && cp .noterraform ${terraformDir}
-  [ -f .nodestroy ] && cp .nodestroy ${terraformDir}
-  cp -r ${modulePath}/*.tf ${terraformDir}
+  cp ${basedir}/.test/terraform.bash ${targetDir}
+  cp ${terraformVars} ${targetDir}
+  cp terraform* ${targetDir}
+  [ -f .noterraform ] && cp .noterraform ${targetDir}
+  [ -f .nodestroy ] && cp .nodestroy ${targetDir}
+  cp -r ${modulePath}/*.tf ${targetDir}
   # suppress the error message and exit code
-  cp -r ${modulePath}/*.json ${terraformDir} 2>/dev/null || :
+  cp -r ${modulePath}/*.json ${targetDir} 2>/dev/null || :
 }
 
 function processTerraformVars() {
   # ------------------------------------------------------------------
   # AWS credentials processing
   # ------------------------------------------------------------------
-  AWS_ACCESS_KEY_ID=$(${awsCredentials} --profile=${awsProfile} --key)
-  AWS_SECRET_ACCESS=$(${awsCredentials} --profile=${awsProfile} --secret)
-  sed -e "s/\$AWS_ACCESS_KEY_ID/$AWS_ACCESS_KEY_ID/" ${terraformVars} | \
-  sed -e "s/\$AWS_SECRET_ACCESS/$AWS_SECRET_ACCESS/" | \
-  sed -e "s/\$AWS_USER/$AWS_USER/" | \
-  sed -e "s/\$AWS_REGION/$AWS_REGION/" > tmp ; mv tmp ${terraformVars}
+  AWS_ACCESS_KEY_ID=$(${awsCredentialsScript} --profile=${awsProfile} --key)
+  AWS_SECRET_ACCESS=$(${awsCredentialsScript} --profile=${awsProfile} --secret)
+  sed -e "s|\$AWS_ACCESS_KEY_ID|$AWS_ACCESS_KEY_ID|;
+  s|\$AWS_SECRET_ACCESS|$AWS_SECRET_ACCESS|;
+  s|\$AWS_USER|$AWS_USER|;
+  s|\$AWS_REGION|$AWS_REGION|" ${terraformVars} > tmp ; 
+  mv tmp ${terraformVars}
 }
 
 function displayDuration() {

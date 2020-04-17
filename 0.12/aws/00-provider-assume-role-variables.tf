@@ -1,4 +1,9 @@
-variable "aws_region"          {}
-variable "assume_role_arn"     {}
-variable "assume_role_session" {}
-variable "tags"                {}
+variable "aws_region" {
+  type = string
+}
+variable "assume_role_arn" {
+  type = string
+}
+variable "assume_role_session" {
+  type = string
+}
