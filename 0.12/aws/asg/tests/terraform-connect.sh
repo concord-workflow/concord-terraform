@@ -23,7 +23,8 @@ while instanceId=$(aws autoscaling \
   --auto-scaling-group-names concord-testing \
   --region ${AWS_REGION} \
   --profile ${AWS_PROFILE} | \
-  jq -r .AutoScalingGroups[0].Instances[0].InstanceId); test "$instanceId" = "null"
+  jq -r .AutoScalingGroups[0].Instances[0].InstanceId | \
+  tr -d "\r\n\t"); test "$instanceId" = "null"
   do
     debug "Waiting for ASG instance to become ready ..."
     sleep 3
@@ -48,15 +49,18 @@ publicIp=$(aws ec2 describe-instances \
   --instance-ids ${instanceId} \
   --region ${AWS_REGION} \
   --profile ${AWS_PROFILE} | \
-  jq -r .Reservations[0].Instances[0].PublicIpAddress)
+  jq -r .Reservations[0].Instances[0].PublicIpAddress | \
+  tr -d "\n\r\t")
 
-debug "publicIp = ${publicIp}"
+sshCommand="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=1 -i ${pem} -q ubuntu@${publicIp} exit"
+
+debug "Instance PublicIp = ${publicIp}"
+debug "Instance Pem = ${pem}"
+debug "Instance SSH = ${sshCommand}"
 
 for i in {1..30}
 do
   debug "Attempt ${i} to connect to ASG compute ..."
-  ssh -o "StrictHostKeyChecking no" \
-      -o ConnectTimeout=1 -i ${pem} \
-      -q ubuntu@${publicIp} exit && echo "OK" && break
-      sleep 10
+  ${sshCommand} && echo "OK" && break
+  sleep 10
 done

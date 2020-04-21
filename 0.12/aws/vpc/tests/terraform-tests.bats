@@ -1,6 +1,6 @@
 load terraform
 
-region="$(cat terraform.tfvars.json | jq -r .aws_region)"
+region="$(cat terraform.tfvars.json | jq -r .aws_region | tr -d "\r\n\t")"
 availability_zones=( "${region}a" "${region}b" )
 
 @test "Validate outputs of Terraform 'vpc' module" {

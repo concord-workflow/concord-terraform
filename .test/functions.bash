@@ -37,7 +37,8 @@ function processTerraformVars() {
   sed -e "s@\$AWS_ACCESS_KEY_ID@$AWS_ACCESS_KEY_ID@" ${terraformVars} | \
   sed -e "s@\$AWS_SECRET_ACCESS@$AWS_SECRET_ACCESS@" | \
   sed -e "s@\$AWS_USER@$AWS_USER@" | \
-  sed -e "s@\$AWS_REGION@$AWS_REGION@" > tmp ; mv tmp ${terraformVars}
+  sed -e "s@\$AWS_REGION@$AWS_REGION@" | \
+  sed -e "s@\$AWS_KEYPAIR@$AWS_KEYPAIR@" > tmp ; mv tmp ${terraformVars}
 }
 
 function displayDuration() {

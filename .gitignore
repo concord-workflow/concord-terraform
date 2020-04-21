@@ -6,6 +6,7 @@ test-results.txt
 
 pom.xml
 .idea/
+.vscode/
 *.iml
 
 .DS_Store

@@ -127,13 +127,13 @@ function usage() {
 `cmd` [OPTIONS...]
 -h, --help; Show help
 -d, --debug; Turn on 'set -eox pipefail'
--m, --module; Run the specified modules
+-m, --module; Run the specified modules separated by ','
 -a, --all; Run all modules
 -td, --terraform-destroy
 " | column -t -s ";"
 }
 
-options=$(getopt -o d:m:a:td --long debug:,module:,all:,terraform-destroy: -n 'parse-options' -- "$@")
+options=$(getopt -o h,d,m:,a,td --long help,debug,module:,all,terraform-destroy -n 'parse-options' -- "$@")
 
 if [ $? != 0 ]; then
   echo "Failed parsing options." >&2
@@ -144,7 +144,7 @@ while true; do
   case "$1" in
     -h  | --help) usage; exit;;
     -d  | --debug) set -eox pipefail; shift 1;;
-    -m  | --module) modules=$2; shift 2;;
+    -m  | --module) modules=${2//,/ }; shift 2;;
     -a  | --all ) modules=`ls ${modulesPath}`; shift 1;;
     -td | --terraform-destroy) action=terraform-destroy; shift 1;;
     -- ) shift; break ;;
@@ -154,7 +154,10 @@ while true; do
 done
 
 [ -f "${testResults}" ] && rm -f ${testResults}
-
+echo "Testing modules:"
+for module in ${modules}; do
+echo "  - ${module}"
+done;
 if [ "$action" = "terraform-destroy" ]; then
   for module in ${modules}
   do
@@ -167,10 +170,8 @@ if [ "$action" = "terraform-destroy" ]; then
     )
   done
 else
-  for module in ${modules}
-  do
+  for module in ${modules}; do
     testModule "${module}" "${modulesPath}/${module}" "${modulesPath}"
   done
-
   displayTestResults ${testResults}
 fi
