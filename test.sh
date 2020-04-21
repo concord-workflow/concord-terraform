@@ -145,7 +145,10 @@ while true; do
     -h  | --help) usage; exit;;
     -d  | --debug) set -eox pipefail; shift 1;;
     -m  | --module) modules=${2//,/ }; shift 2;;
-    -a  | --all ) modules=`ls ${modulesPath}`; shift 1;;
+    -a  | --all )
+        modules=$( find ${modulesPath} -maxdepth 1 -type d | rev | cut -d / -f 1 | rev );
+        shift 1
+        ;;
     -td | --terraform-destroy) action=terraform-destroy; shift 1;;
     -- ) shift; break ;;
     "" ) break ;;
@@ -154,10 +157,12 @@ while true; do
 done
 
 [ -f "${testResults}" ] && rm -f ${testResults}
+
 echo "Testing modules:"
 for module in ${modules}; do
-echo "  - ${module}"
+    echo "  - ${module}"
 done;
+
 if [ "$action" = "terraform-destroy" ]; then
   for module in ${modules}
   do
@@ -173,5 +178,7 @@ else
   for module in ${modules}; do
     testModule "${module}" "${modulesPath}/${module}" "${modulesPath}"
   done
+
   displayTestResults ${testResults}
+
 fi
