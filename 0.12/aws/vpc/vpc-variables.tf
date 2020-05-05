@@ -19,10 +19,13 @@ variable "vpc_availability_zones" {
   default = {}
 }
 
-variable "vpc_pcx_vpc_ids" {
+variable "vpc_pcxs" {
   description = "List of VPC id's to which created VPC should be peered"
-  type        = list(string)
-  default     = []
+  type = list(object({
+    vpc_id         = string
+    peer_route_ids = list(string)
+  }))
+  default = []
 }
 
 variable "vpc_endpoint_s3_policy" {
