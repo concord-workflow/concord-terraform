@@ -185,6 +185,16 @@ if [ ! -z "${provisioApplicationCoordinate}" ]; then
   useradd -m ${user} -s /bin/bash
   userHome=$( getent passwd "${user}" | cut -d: -f6 )
 
+  # Install repositories that are specified as a variable in the provisio.bash file
+  if [[ -v repositories ]]; then
+    IFS=' ' read -r -a repos <<< ${repositories} 
+    for repo in "${repos[@]}"
+    do
+      add-apt-repository -y ${repo}
+    done
+    apt-get update
+  fi   
+
   # Install packages that are specified as a variable the provisio.bash file
   apt install -y ${packages}
 
