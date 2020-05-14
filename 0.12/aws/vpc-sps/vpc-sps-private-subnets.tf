@@ -26,6 +26,12 @@ resource "aws_subnet" "private" {
   }
   depends_on = [aws_vpc.main, var.vpc_availability_zones]
 }
+locals {
+  private_subnets_map = {
+    for index in (length(aws_subnet.private) > 0 ? range(length(aws_subnet.private)) : []) :
+    index => aws_subnet.private[index]
+  }
+}
 
 # Create custom route table within VPC for each defined availability zone and add routing to NAT Gateway
 resource "aws_route_table" "private_routes" {

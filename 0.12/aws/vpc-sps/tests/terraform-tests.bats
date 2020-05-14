@@ -18,7 +18,7 @@ availability_zones=( "${region}a" "${region}b" )
   # Verify that count of created Elastic IP' matches no. of AZ's
   assertTerraformOutputMapSize ${#availability_zones[@]} '.["nat-eips"].value'
   # Verify that count of created private subnets matches no. of AZ's
-  assertTerraformOutputArraySize $(( ${#availability_zones[@]}*2 )) '.private_subnets.value'
+  assertTerraformOutputMapSize $(( ${#availability_zones[@]}*2 )) '.private_subnets.value'
   # Verify that count of created Vpc pcx matches
   assertTerraformOutputArraySize 1 '.vpc_pcxs.value'
   # Verify that count of created Vpc pcx routing is equal to no. of AZ's

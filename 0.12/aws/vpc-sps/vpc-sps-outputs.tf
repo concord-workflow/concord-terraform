@@ -9,7 +9,7 @@ output "vpc" {
 
 # Subnets
 output "private_subnets" {
-  value = aws_subnet.private
+  value = local.private_subnets_map
 }
 
 output "public_subnets" {

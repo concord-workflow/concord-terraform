@@ -10,21 +10,25 @@ variable "vpc_assign_ipv6_cidr" {
 }
 
 variable "vpc_availability_zones" {
-  description = "Map consistiong ok availabiltiy zones names as keys and their def. as value"
-  type = map(object({
-    public_subnet_cidr   = string
-    private_subnets_cidr = list(string)
-    tags                 = map(string)
-  }))
+  description = "Map consisting of availability zones names as keys and their def. as value"
+  # Map of Az's names to objects desc. Subnet:
+  # key(String) => object({
+  #   public_subnet_cidr   = string
+  #   private_subnets_cidr = list(string)
+  #   tags                 = map(string)
+  # })
+  type = map
   default = {}
 }
 
 variable "vpc_pcxs" {
   description = "List of VPC id's to which created VPC should be peered"
-  type = list(object({
-    vpc_id         = string
-    peer_route_ids = list(string)
-  }))
+  # List of objects desc. VPC:
+  # object({
+  #   vpc_id         = string
+  #   peer_route_ids = list(string)
+  # })
+  type = list
   default = []
 }
 
@@ -54,6 +58,7 @@ POLICY
 
 variable "vpc_tags" {
   description = "List of tags added to VPC"
-  type        = map(string)
+  # Map of VPC tag strings
+  type        = map
   default     = {}
 }
