@@ -12,6 +12,11 @@ resource "aws_ec2_fleet" "main" {
   }
 
   launch_template_config {
+
+    override {
+      max_price                    = var.ec2_fleet_max_spot_price
+    }
+
     launch_template_specification {
       launch_template_id             = aws_launch_template.main.id
       version                        = "$Latest"
