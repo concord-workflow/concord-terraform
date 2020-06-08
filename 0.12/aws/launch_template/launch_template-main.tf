@@ -29,6 +29,7 @@ resource "aws_launch_template" "main" {
   user_data              = filebase64(var.launch_template_user_data)
 
   network_interfaces {
+    subnet_id                   = element(tolist(data.aws_subnet_ids.selected_public_subnets.ids), 0)  
     associate_public_ip_address = var.launch_template_associate_public_ip
     security_groups             = [aws_security_group.main.id]
     delete_on_termination       = true # not sure why you would ever want this to be false, otherwise the SG won't delete
