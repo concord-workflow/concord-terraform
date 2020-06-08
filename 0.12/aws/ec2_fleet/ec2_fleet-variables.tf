@@ -3,28 +3,42 @@ variable "ec2_fleet_name" {
   description = "Name of the autoscaling group"
 }
 
+# ------------------------------------------------------------------------------------------
+# Fleet capacity
+# ------------------------------------------------------------------------------------------
 variable "ec2_fleet_target_capacity" {
   type        = number
   default     = 1
   description = "The number of computes in the EC2 Fleet"
 }
 
+variable "ec2_fleet_default_capacity_type" {
+  type        = string
+  default     = "spot"
+  description = "The default type of compute for this EC2 Fleet."
+}
+
+# ------------------------------------------------------------------------------------------
+# On demand instances
+# ------------------------------------------------------------------------------------------
 variable "ec2_fleet_on_demand_target_capacity" {
   type        = number
   default     = 1
   description = "The number of on-demand computes in the EC2 Fleet"
 }
 
+# ------------------------------------------------------------------------------------------
+# Spot instances
+# ------------------------------------------------------------------------------------------
 variable "ec2_fleet_spot_target_capacity" {
   type        = number
   default     = 0
   description = "The number of spot computes in the EC2 Fleet"
 }
 
-variable "ec2_fleet_default_capacity_type" {
+variable "ec2_fleet_max_spot_price" {
   type        = string
-  default     = "spot"
-  description = "The default type of compute for this EC2 Fleet."
+  description = "Max price per hour for a spot instance"
 }
 
 variable "ec2_fleet_excess_capacity_termination_policy" {
