@@ -1,0 +1,83 @@
+flows:
+
+  vpc:
+    - log: "Running the VPC flow ..."
+    - vpcTerraform
+
+    - task: terraform
+      in:
+        toolVersion: "${terraformVersion}"
+        action: apply
+        dir: "${terraformDirectory}"
+        saveOutput: true
+        stateId: "${aws.instanceName}"
+        varFiles:
+          - "${workDir}/terraform/00.auto.tfvars.json"
+
+  vpcTerraform:
+    - log: "Using the following configuration: ${aws}"
+
+    - task: terraformProcessor
+      in:
+        resourceDirectory: "${terraformResources}"
+        outputDirectory: "${terraformDirectory}"
+        configuration:
+          version: "0.12"
+          provider: "aws"
+          authentication: credentials
+          configuration:
+            aws_region: "${aws.region}"
+            aws_access_key: "${aws.accessKey}"
+            aws_secret_key: "${aws.secretKey}"
+            tags: ${aws.tags}
+          resources:
+            - type: vpc
+              variables:
+                vpc_name: "${aws.vpcName}"
+                vpc_cidr: "${aws.vpcCidr}"
+                public_subnet_list: ${aws.publicSubnets}
+                private_subnet_list: ${aws.privateSubnets}
+
+  vpcDestroy:
+    - log: "Running the VPC destroy flow ..."
+    - vpcTerraform
+
+    - task: terraform
+      in:
+        toolVersion: "${terraformVersion}"
+        debug: ${terraformDebug}
+        action: plan
+        destroy: true
+        dir: "${terraformDirectory}"
+        stateId: ${aws.instanceName}
+        varFiles:
+          - "${workDir}/${terraformDirectory}/00.auto.tfvars.json"
+
+    - if: ${!result.hasChanges}
+      then:
+        - log: "No changes planned, stopping..."
+        - exit
+
+    - form: approvalForm
+      fields:
+        - plan: { type: "string", readonly: true, value: "${result.output}" }
+        - approved: { type: "boolean" }
+      values:
+        processId: "${txId}"
+      yield: true
+
+    - if: ${!approvalForm.approved}
+      then:
+        - throw: "The plan to destroy was not approved"
+
+    - task: terraform
+      in:
+        toolVersion: "${terraformVersion}"
+        debug: ${terraformDebug}
+        verbose: ${terraformDebug}
+        action: apply
+        plan: ${result.planPath}
+        stateId: ${aws.instanceName}
+      retry:
+        times: 3
+        delay: 30
