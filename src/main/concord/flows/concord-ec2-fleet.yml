@@ -40,6 +40,8 @@ flows:
             - type: "ec2_fleet"
               variables:
                 vpc_name: "${aws.vpcName}"
+                ec2_fleet_max_spot_price: "${aws.maxSpotPrice}"
+                ec2_fleet_default_capacity_type: "${aws.defaultInstanceType}"
                 ec2_fleet_name: "${aws.fleetName}"
                 ec2_fleet_target_capacity: ${aws.fleetSize}
                 ec2_fleet_tags: ${aws.instanceTags}
