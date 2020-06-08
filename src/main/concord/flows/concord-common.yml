@@ -1,7 +1,10 @@
 configuration:
+  runner:
+    events:
+      recordTaskInVars: true
   dependencies:
     - "mvn://com.walmartlabs.concord.plugins:terraform-task:1.22.0"
-    - "mvn://ca.vanzyl.concord.plugins:concord-terraform-processor-plugin:0.1.2"
+    - "mvn://ca.vanzyl.concord.plugins:concord-terraform-processor-plugin:0.1.3"
   arguments:
     terraformDebug: false
     terraformVersion: "0.12.24"

@@ -9,7 +9,8 @@
 # - align the method for build VMs as building docker containers
 # - investigate if snaps can be used for all package installation across distros
 # - standard way to generate a parameterized configuration
-
+# - to get standard AWS account name and alias: echo $(aws iam list-account-aliases | jq -r .AccountAliases[0])-$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountI
+#d)
 # ------------------------------------------------------------------------------
 # A general way to provision a compute using this as the user_data for cloud-init
 # ------------------------------------------------------------------------------
@@ -46,13 +47,33 @@ provisioRpmsTag="provisio.rpms"
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
 # ------------------------------------------------------------------------------
 
+function retry() {
+  local retries=$1
+  shift
+
+  local count=0
+  until "$@"; do
+    exit=$?
+    wait=$((2 ** $count))
+    count=$(($count + 1))
+    if [ $count -lt $retries ]; then
+      echo "Retry $count/$retries exited $exit, retrying in $wait seconds..."
+      sleep $wait
+    else
+      echo "Retry $count/$retries exited $exit, no more retries left."
+      return $exit
+    fi
+  done
+  return 0
+}
+
 # This function is taken from https://github.com/jvanzyl/maven-bash
 function mavenCoordinateToArtifactPath() {
   # Standard format for a Maven coordinate:
   # <groupId>:<artifactId>[:<extension>[:classifier]]:<version>
   # $1 = coordinate
   IFS=':' read -ra coordinateParts <<< "$1"
-  groupId=$(echo ${coordinateParts[0]} | sed 's/\./\//')
+  groupId=$(echo ${coordinateParts[0]} | sed 's/\./\//g')
   artifactId=${coordinateParts[1]}
   if [ ${#coordinateParts[@]} -eq 3 ]; then
     # <groupId>:<artifactId>:<version>
@@ -78,7 +99,9 @@ function awsTagValue() {
   instanceId=$2
   tag=$3
 
-  aws ec2 describe-tags --region ${region} \
+  # It is incredibly important that we get the tags we need so we'll retry
+  # several times to retrieve the tags if necessary
+  retry 5 aws ec2 describe-tags --region ${region} \
     --filters "Name=resource-id,Values=${instanceId}" "Name=key,Values=${tag}" \
     --query 'Tags[0].Value' --output=text
 }
@@ -100,8 +123,8 @@ if [ "${linuxDistro}" = "Ubuntu" ]; then
   apt install -y snapd unzip jq
 
   # Bootstrap: v2 of the AWS CLI for secrets managment
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
+  retry 5 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip -o awscliv2.zip
   ./aws/install
 fi
 
@@ -142,7 +165,7 @@ if [ ! -z "${provisioInstallerProfile}" ]; then
   echo "provisioInstallerUrl = ${provisioInstallerUrl}"
   echo "provisioHome = ${provisioHome}"
 
-  aws s3 cp ${provisioInstallerUrl} .
+  retry 5 aws s3 cp ${provisioInstallerUrl} .
   tar xf ${provisioInstaller}
   ( cd provisio-installer; ./install ${provisioInstallerProfile} ${provisioHome} )
 fi
@@ -165,7 +188,7 @@ if [ ! -z "${provisioApplicationCoordinate}" ]; then
   echo "provisioApplicationUrl = ${provisioApplicationUrl}"
 
   # Fetch the specified provisio artifact
-  aws s3 cp "${provisioApplicationUrl}" "${provisioTarGz}"
+  retry 5 aws s3 cp "${provisioApplicationUrl}" "${provisioTarGz}"
 
   # Extract the standard metadata from the provisio.tar.gz
   tar xf "${provisioTarGz}" "${provisioDirectory}"
@@ -187,16 +210,16 @@ if [ ! -z "${provisioApplicationCoordinate}" ]; then
 
   # Install repositories that are specified as a variable in the provisio.bash file
   if [[ -v repositories ]]; then
-    IFS=' ' read -r -a repos <<< ${repositories} 
+    IFS=' ' read -r -a repos <<< ${repositories}
     for repo in "${repos[@]}"
     do
-      add-apt-repository -y ${repo}
+      retry 5 add-apt-repository -y ${repo}
     done
     apt-get update
-  fi   
+  fi
 
   # Install packages that are specified as a variable the provisio.bash file
-  apt install -y ${packages}
+  retry 5 apt install -y ${packages}
 
   # Unpack the provisio archive in ${userHome}. Provisio server archives have
   # a top-level directory so you don't need to make a directory prior to unpacking.
