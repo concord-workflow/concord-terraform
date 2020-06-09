@@ -90,7 +90,7 @@ function testModule() {
             cd ${targetDir}
             processTerraformVars
             [ -f terraform-pre-tests ] && echo && bash ./terraform-pre-tests
-            
+
             if [ ! -f .noterraform ]; then
               start=$SECONDS
               terraform init -no-color
@@ -177,11 +177,21 @@ if [ "$action" = "terraform-destroy" ]; then
     (
       cd ${targetDir}
       if [ -d "${module}" ]; then
-          ( cd ${module}; terraform destroy -auto-approve)
-          fixturesDir="${module}/fixtures"
-          if [ -d ${fixturesDir} ]; then
-            ( cd ${fixturesDir}; terraform destroy -auto-approve)
-          fi
+        for moduleTestDir in $( find ${module} -type f -name "*.tfstate" | rev | sed -E "s|^([^/]+)/(.*)$|\2|" | rev );
+        do
+          (
+            cd ${moduleTestDir};
+            echo "Destroying '${module}' module  ..."
+            terraform destroy -auto-approve
+            fixturesDir="${moduleTestDir}/fixtures"
+            if [ -d ${fixturesDir} ]; then
+              (
+                cd ${fixturesDir};
+                terraform destroy -auto-approve
+              )
+            fi
+          )
+        done;
       fi
     )
   done
