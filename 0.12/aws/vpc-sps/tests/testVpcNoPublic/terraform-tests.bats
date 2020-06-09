@@ -19,6 +19,13 @@ availability_zones=( "${region}a" "${region}b" )
   assertTerraformOutputMapSize 0 '.["nat-eips"].value'
   # Verify that count of created private subnets matches no. of AZ's
   assertTerraformOutputMapSize $(( ${#availability_zones[@]}*2 )) '.private_subnets.value'
+  # Verify that count of created Vpc pcx matches
+  assertTerraformOutputArraySize 1 '.vpc_pcxs.value'
+  # Verify that count of created Vpc pcx routing is valid
+  assertTerraformOutputArraySize 0 '.vpc_pcxs_routing.value'
+  assertTerraformOutputArraySize 1 '.vpc_pcxs_def_routing.value'
+  # Verify that count of created Vpc pcx revers routing is created
+  assertTerraformOutputArraySize 1 '.vpc_pcxs_reverse_routing.value'
 
   for az in ${availability_zones[@]}; do
 

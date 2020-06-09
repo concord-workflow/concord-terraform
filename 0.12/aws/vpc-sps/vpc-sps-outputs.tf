@@ -25,6 +25,10 @@ output "vpc_pcxs_routing" {
   value = aws_route.vpc_peer_route
 }
 
+output "vpc_pcxs_def_routing" {
+  value = aws_route.vpc_peer_def_route
+}
+
 output "vpc_pcxs_reverse_routing" {
   value = aws_route.vpc_peer_reverse_route
 }

@@ -17,7 +17,7 @@ data "aws_vpc_peering_connection" "vpc_peering_conn_data" {
   depends_on = [aws_vpc_peering_connection.vpc_peer_conn]
 }
 locals {
-  pcx_routings = flatten([
+  pcx_private_routings = flatten([
     for route_table in values(aws_route_table.private_routes) : [
       for vpc_peering_data in data.aws_vpc_peering_connection.vpc_peering_conn_data : [
         {
@@ -41,10 +41,18 @@ locals {
 }
 
 resource "aws_route" "vpc_peer_route" {
-  count                     = length(local.pcx_routings)
-  route_table_id            = local.pcx_routings[count.index].route_table_id
-  destination_cidr_block    = local.pcx_routings[count.index].vpc_peering_data.peer_cidr_block
-  vpc_peering_connection_id = local.pcx_routings[count.index].vpc_peering_data.id
+  count                     = length(local.pcx_private_routings)
+  route_table_id            = local.pcx_private_routings[count.index].route_table_id
+  destination_cidr_block    = local.pcx_private_routings[count.index].vpc_peering_data.peer_cidr_block
+  vpc_peering_connection_id = local.pcx_private_routings[count.index].vpc_peering_data.id
+  depends_on                = [aws_route_table.private_routes, data.aws_vpc_peering_connection.vpc_peering_conn_data]
+}
+
+resource "aws_route" "vpc_peer_def_route" {
+  count                     = length(local.pcx_private_routings) > 0 ? 0 : length(data.aws_vpc_peering_connection.vpc_peering_conn_data)
+  route_table_id            = aws_vpc.main.main_route_table_id
+  destination_cidr_block    = data.aws_vpc_peering_connection.vpc_peering_conn_data[count.index].peer_cidr_block
+  vpc_peering_connection_id = data.aws_vpc_peering_connection.vpc_peering_conn_data[count.index].id
   depends_on                = [aws_route_table.private_routes, data.aws_vpc_peering_connection.vpc_peering_conn_data]
 }
 

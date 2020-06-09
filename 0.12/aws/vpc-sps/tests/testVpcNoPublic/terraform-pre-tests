@@ -1,10 +1,14 @@
 
 cidr_ip=$(./terraform-free-cidr-ip)
 cider_ip_16_prefix=$( echo "$cidr_ip" | sed -E "s|^([0-9]+\.[0-9]+)\.[0-9]+\.[0-9]+$|\1|" )
+peer_vpc_id=$(./terraform-def-vpc-id)
+peer_vpc_rtb_id=$(./terraform-vpc-main-rtb-id ${peer_vpc_id} )
 
 sed -e "\
 s|\$VPC_CIDR_IP_16b_PREFIX|$cider_ip_16_prefix|;\
 s|\$VPC_CIDR_IP|$cidr_ip|;\
+s|\$PEER_VPC_ID|$peer_vpc_id|;\
+s|\$PEER_VPC_RTB_ID|$peer_vpc_rtb_id|;\
 " terraform.tfvars.json > tmp
 
 mv tmp terraform.tfvars.json

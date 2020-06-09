@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+rtb_id=( $(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=${1}" "Name=association.main,Values=true" | jq -r '.RouteTables[].RouteTableId' | tr -d "\r\n\t" | sed 's/\/.*$//') )
+echo "$rtb_id"
