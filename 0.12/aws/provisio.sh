@@ -106,6 +106,16 @@ function awsTagValue() {
     --query 'Tags[0].Value' --output=text
 }
 
+function instanceId() {
+  # We have seen this fail and indicates the machine is not
+  # ready to be provisioned
+  retry 10 wget -qO- http://instance-data/latest/meta-data/instance-id
+}
+
+function region() {
+  retry 10 wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed 's/.$//'
+}
+
 # Do everything to setup the machine as root
 cd /root
 
@@ -133,11 +143,11 @@ fi
 # ------------------------------------------------------------------------------
 
 # Determine the instanceId of our instance
-instanceId=$(wget -qO- http://instance-data/latest/meta-data/instance-id)
+instanceId=$(instanceId)
 echo "instanceId = ${instanceId}"
 
 # Determine the region our instance resides in
-region=$(wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed 's/.$//')
+region=$(region)
 echo "region = ${region}"
 
 provisioBucketPath=$(awsTagValue ${region} ${instanceId} ${provisioBucketPathTag})
@@ -178,6 +188,7 @@ if [ ! -z "${provisioApplicationCoordinate}" ]; then
   provisioTarGz="provisio.tar.gz"
   provisioDirectory=".provisio"
   provisioManifest="${PWD}/${provisioDirectory}/provisio.bash"
+  #
   provisioScript="${PWD}/${provisioDirectory}/provisio.sh"
 
   # Create the artifact path from the provisio coordinate
@@ -193,32 +204,39 @@ if [ ! -z "${provisioApplicationCoordinate}" ]; then
   # Extract the standard metadata from the provisio.tar.gz
   tar xf "${provisioTarGz}" "${provisioDirectory}"
 
-  # Source the variables present in the provisio.bash file. The variables this manifest
-  # can set are:
-  #
-  # - ${user}
-  # - ${packages}
-  source ${provisioManifest}
+  if [[ -f ${provisioManifest} ]]; then
+    # We have a legacy provisio.bash file
+    source ${provisioManifest}
+  else
+    # We have a user, repositories, and packages file
+    userFile="${PWD}/${provisioDirectory}/user"
+    repositoriesFile="${PWD}/${provisioDirectory}/repositories"
+    packagesFile="${PWD}/${provisioDirectory}/packages"
+    [[ -f $userFile ]] && user=$(cat $userFile)
+    [[ -f $repositoriesFile ]] && repositories=$(cat $repositoriesFile)
+    [[ -f $packagesFile ]] && packages=$(cat $packagesFile)
+  fi
 
   echo "user = ${user}"
-  echo "package = ${packages}"
+  echo "repositories = ${repositories}"
+  echo "packages = ${packages}"
 
   # Add specified user as per provisio manifest. This should work on the various
   # standard linux distributions
   useradd -m ${user} -s /bin/bash
   userHome=$( getent passwd "${user}" | cut -d: -f6 )
 
-  # Install repositories that are specified as a variable in the provisio.bash file
+  # Install repositories that are specified in ${repositories}
   if [[ -v repositories ]]; then
-    IFS=' ' read -r -a repos <<< ${repositories}
-    for repo in "${repos[@]}"
+    for repo in ${repositories}
     do
       retry 5 add-apt-repository -y ${repo}
     done
     apt-get update
   fi
 
-  # Install packages that are specified as a variable the provisio.bash file
+
+  # Install packages that specified  in ${packages}
   retry 5 apt install -y ${packages}
 
   # Unpack the provisio archive in ${userHome}. Provisio server archives have
