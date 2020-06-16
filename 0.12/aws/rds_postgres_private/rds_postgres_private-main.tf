@@ -1,7 +1,7 @@
 resource "aws_db_subnet_group" "main" {
   name        = "${var.rds_postgres_identifier}-subnet"
   description = "Subnet for ${var.rds_postgres_identifier}"
-  subnet_ids  = data.aws_subnet_ids.selected_public_subnets[0].ids
+  subnet_ids  = data.aws_subnet_ids.selected.ids
   tags        = var.tags
 }
 
@@ -20,7 +20,7 @@ resource "aws_db_instance" "main" {
   instance_class          = var.rds_postgres_instance_type
   backup_retention_period = 7
   identifier              = var.rds_postgres_identifier
-  publicly_accessible     = var.rds_postgres_public
+  publicly_accessible     = false
   deletion_protection     = false
   skip_final_snapshot     = true
   db_subnet_group_name    = aws_db_subnet_group.main.id

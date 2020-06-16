@@ -5,6 +5,10 @@ variable "vpc_name" {
   type = string
 }
 
+variable "vpc_public" {
+  default = true
+}
+
 variable "security_group_name_filter" {
   type = string
   default = "**"
