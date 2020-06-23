@@ -103,13 +103,24 @@ resource "aws_iam_role_policy_attachment" "route53-woker-role-attach" {
   policy_arn = data.aws_iam_policy.AmazonRoute53Policy.arn
 }
 
+resource "aws_iam_policy" "aws-cloudwatch-policy" {
+  name        = "${var.cluster_name}-aws-cloudwatch-policy"
+  path        = "/"
+  description = "AWS CloudWatchPolicy"
+  policy      = file("eks-policy-aws-cloudwatch.json")
+}
+
+resource "aws_iam_role_policy_attachment" "aws-cloudwatch-policy-attachment" {
+  role       = aws_iam_role.eks_worker_node_role.name
+  policy_arn = aws_iam_policy.aws-cloudwatch-policy.arn
+}
+
 resource "aws_iam_policy" "aws-ebs-csi-driver-policy" {
   name        = "${var.cluster_name}-aws-ebs-csi-driver-policy"
   path        = "/"
   description = "aws-ebs-csi-driver policy "
   policy      = file("eks-policy-aws-ebs-csi-driver.json")
 }
-
 
 resource "aws_iam_role_policy_attachment" "aws-ebs-csi-driver-policy-attachment" {
   role       = aws_iam_role.eks_worker_node_role.name
