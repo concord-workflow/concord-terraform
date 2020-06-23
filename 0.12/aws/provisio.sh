@@ -28,7 +28,8 @@
 #
 # "tags": {
 #   "provisio.bucketPath": "s3://starburstdata-artifacts/releases",
-#   "provisio.applicationCoordinate": "ca.vanzyl:starburst-concord-agent:tar.gz:1.0.0"
+#   "provisio.applicationCoordinate": "ca.vanzyl:starburst-concord-agent:tar.gz:1.0.0",
+#   "provisio.installerProfile": "starburst"
 # }
 #
 # You can also all the Provisio features together, you just need ensure the
